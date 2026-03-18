@@ -1,9 +1,13 @@
 package app
 
 import (
+	"bytes"
+	"compress/zlib"
 	"context"
+	"encoding/base64"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"sync"
@@ -21,23 +25,74 @@ type CodecServer struct {
 	stopOnce sync.Once
 }
 
-type passthroughCodec struct{}
+const (
+	codecEncoding        = "binary/zlib-base64"
+	metaOriginalEncoding = "x-original-encoding"
+)
 
-func (passthroughCodec) Encode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error) {
-	return payloads, nil
+type zlibBase64Codec struct{}
+
+func (zlibBase64Codec) Encode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error) {
+	result := make([]*commonpb.Payload, len(payloads))
+	for i, p := range payloads {
+		out := clonePayload(p)
+		if out.Metadata == nil {
+			out.Metadata = make(map[string][]byte, 2)
+		}
+
+		origEncoding := append([]byte(nil), out.Metadata[converter.MetadataEncoding]...)
+		out.Metadata[metaOriginalEncoding] = origEncoding
+
+		compressed, err := zlibCompress(out.Data)
+		if err != nil {
+			return payloads, err
+		}
+		out.Data = []byte(base64.StdEncoding.EncodeToString(compressed))
+		out.Metadata[converter.MetadataEncoding] = []byte(codecEncoding)
+		result[i] = out
+	}
+	return result, nil
 }
 
-func (passthroughCodec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error) {
-	return payloads, nil
+func (zlibBase64Codec) Decode(payloads []*commonpb.Payload) ([]*commonpb.Payload, error) {
+	result := make([]*commonpb.Payload, len(payloads))
+	for i, p := range payloads {
+		out := clonePayload(p)
+		if string(out.Metadata[converter.MetadataEncoding]) != codecEncoding {
+			result[i] = out
+			continue
+		}
+
+		decoded, err := base64.StdEncoding.DecodeString(string(out.Data))
+		if err != nil {
+			return payloads, err
+		}
+		plain, err := zlibDecompress(decoded)
+		if err != nil {
+			return payloads, err
+		}
+		out.Data = plain
+
+		if orig, ok := out.Metadata[metaOriginalEncoding]; ok {
+			if len(orig) == 0 {
+				delete(out.Metadata, converter.MetadataEncoding)
+			} else {
+				out.Metadata[converter.MetadataEncoding] = append([]byte(nil), orig...)
+			}
+			delete(out.Metadata, metaOriginalEncoding)
+		}
+		result[i] = out
+	}
+	return result, nil
 }
 
-func StartCodecServer() (*CodecServer, error) {
-	ln, err := net.Listen("tcp", "127.0.0.1:0")
+func StartCodecServer(port int) (*CodecServer, error) {
+	ln, err := net.Listen("tcp", fmt.Sprintf("127.0.0.1:%d", port))
 	if err != nil {
 		return nil, fmt.Errorf("listen codec server: %w", err)
 	}
 
-	h := converter.NewPayloadCodecHTTPHandler(passthroughCodec{})
+	h := converter.NewPayloadCodecHTTPHandler(zlibBase64Codec{})
 	h = withCORS(h)
 
 	srv := &http.Server{Handler: h}
@@ -55,6 +110,45 @@ func StartCodecServer() (*CodecServer, error) {
 	}()
 
 	return codec, nil
+}
+
+func clonePayload(p *commonpb.Payload) *commonpb.Payload {
+	if p == nil {
+		return nil
+	}
+	out := &commonpb.Payload{}
+	if len(p.Data) > 0 {
+		out.Data = append([]byte(nil), p.Data...)
+	}
+	if len(p.Metadata) > 0 {
+		out.Metadata = make(map[string][]byte, len(p.Metadata))
+		for k, v := range p.Metadata {
+			out.Metadata[k] = append([]byte(nil), v...)
+		}
+	}
+	return out
+}
+
+func zlibCompress(data []byte) ([]byte, error) {
+	var buf bytes.Buffer
+	w := zlib.NewWriter(&buf)
+	if _, err := w.Write(data); err != nil {
+		_ = w.Close()
+		return nil, err
+	}
+	if err := w.Close(); err != nil {
+		return nil, err
+	}
+	return buf.Bytes(), nil
+}
+
+func zlibDecompress(data []byte) ([]byte, error) {
+	r, err := zlib.NewReader(bytes.NewReader(data))
+	if err != nil {
+		return nil, err
+	}
+	defer r.Close()
+	return io.ReadAll(r)
 }
 
 func (s *CodecServer) Stop() {

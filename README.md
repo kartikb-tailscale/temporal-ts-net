@@ -6,6 +6,18 @@ Extension command for Temporal CLI that adds:
 - automatic local codec server startup
 - optional tailnet exposure with `--tailscale`
 
+By default the built-in codec server applies a stateless `zlib + base64` envelope:
+
+- `/encode`: zlib-compress payload bytes, then base64-encode them
+- `/decode`: base64-decode payload bytes, then zlib-decompress them
+
+The codec preserves and restores the original payload encoding metadata.
+It does not require or validate key IDs and passes any existing
+`encryption-key-id` metadata through unchanged.
+
+Default codec server bind address is `127.0.0.1:8081`.
+Override with `--codec-port` when needed.
+
 ## Install
 
 Build the extension binary:
@@ -55,5 +67,6 @@ temporal start-dev \
 - `--tailscale-hostname`: tsnet hostname (default `temporal-dev`)
 - `--tailscale-authkey`: auth key for non-interactive auth (or set `TS_AUTHKEY`)
 - `--tailscale-state-dir`: local state dir for tsnet node
+- `--codec-port`: local codec server port (default `8081`)
 
 All non-extension flags are forwarded to `temporal server start-dev`.

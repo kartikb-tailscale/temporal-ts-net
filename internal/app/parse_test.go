@@ -26,6 +26,14 @@ func TestParseExtensionArgs(t *testing.T) {
 		opts, pass, err := ParseExtensionArgs([]string{"--port", "7240"})
 		require.NoError(t, err)
 		require.Equal(t, "temporal-dev", opts.TailscaleHostname)
+		require.Equal(t, 8081, opts.CodecPort)
+		require.Equal(t, []string{"--port", "7240"}, pass)
+	})
+
+	t.Run("supports codec-port", func(t *testing.T) {
+		opts, pass, err := ParseExtensionArgs([]string{"--codec-port", "19081", "--port", "7240"})
+		require.NoError(t, err)
+		require.Equal(t, 19081, opts.CodecPort)
 		require.Equal(t, []string{"--port", "7240"}, pass)
 	})
 
@@ -48,6 +56,11 @@ func TestParseExtensionArgs(t *testing.T) {
 	t.Run("errors on missing value", func(t *testing.T) {
 		_, _, err := ParseExtensionArgs([]string{"--tailscale-hostname"})
 		require.Error(t, err)
+	})
+
+	t.Run("errors on bad codec-port", func(t *testing.T) {
+		_, _, err := ParseExtensionArgs([]string{"--codec-port", "0"})
+		require.ErrorContains(t, err, "--codec-port")
 	})
 }
 

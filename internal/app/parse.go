@@ -9,6 +9,7 @@ import (
 const (
 	defaultServerIP   = "localhost"
 	defaultServerPort = 7233
+	defaultCodecPort  = 8081
 )
 
 type ExtensionOptions struct {
@@ -17,6 +18,7 @@ type ExtensionOptions struct {
 	TailscaleHostname string
 	TailscaleAuthKey  string
 	TailscaleStateDir string
+	CodecPort         int
 }
 
 type ServerConfig struct {
@@ -31,7 +33,7 @@ type ServerConfig struct {
 }
 
 func ParseExtensionArgs(args []string) (ExtensionOptions, []string, error) {
-	opts := ExtensionOptions{TailscaleHostname: "temporal-dev"}
+	opts := ExtensionOptions{TailscaleHostname: "temporal-dev", CodecPort: defaultCodecPort}
 	passThrough := make([]string, 0, len(args))
 
 	for i := 0; i < len(args); i++ {
@@ -108,6 +110,23 @@ func ParseExtensionArgs(args []string) (ExtensionOptions, []string, error) {
 			opts.TailscaleStateDir = arg[len("--tailscale-state-dir="):]
 		case strings.HasPrefix(arg, "--tsnet-state-dir="):
 			opts.TailscaleStateDir = arg[len("--tsnet-state-dir="):]
+		case arg == "--codec-port":
+			if i+1 >= len(args) {
+				return opts, nil, fmt.Errorf("missing value for --codec-port")
+			}
+			i++
+			v, err := strconv.Atoi(args[i])
+			if err != nil {
+				return opts, nil, fmt.Errorf("invalid --codec-port value %q", args[i])
+			}
+			opts.CodecPort = v
+		case strings.HasPrefix(arg, "--codec-port="):
+			v := arg[len("--codec-port="):]
+			port, err := strconv.Atoi(v)
+			if err != nil {
+				return opts, nil, fmt.Errorf("invalid --codec-port value %q", v)
+			}
+			opts.CodecPort = port
 		default:
 			passThrough = append(passThrough, arg)
 		}
@@ -115,6 +134,9 @@ func ParseExtensionArgs(args []string) (ExtensionOptions, []string, error) {
 
 	if opts.TailscaleHostname == "" {
 		return opts, nil, fmt.Errorf("--tailscale-hostname cannot be empty")
+	}
+	if opts.CodecPort <= 0 || opts.CodecPort > 65535 {
+		return opts, nil, fmt.Errorf("--codec-port must be between 1 and 65535")
 	}
 
 	return opts, passThrough, nil

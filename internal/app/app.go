@@ -28,6 +28,7 @@ Extension flags:
                                          Tailscale auth key (or TS_AUTHKEY).
   --tailscale-state-dir / --tsnet-state-dir VALUE
                                          Directory for tsnet state.
+  --codec-port VALUE                    Codec server port. Default: 8081.
   -h, --help                      Show this help text.
 
 All other flags are forwarded to:
@@ -51,7 +52,7 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 2
 	}
 
-	codecSrv, err := StartCodecServer()
+	codecSrv, err := StartCodecServer(extOpts.CodecPort)
 	if err != nil {
 		_, _ = fmt.Fprintf(stderr, "failed to start codec server: %v\n", err)
 		return 1
