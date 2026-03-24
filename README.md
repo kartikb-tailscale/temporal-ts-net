@@ -85,3 +85,24 @@ go run mage.go fmt      # Format code
 go run mage.go clean    # Remove build artifacts
 go run mage.go install  # Install to $GOPATH/bin
 ```
+
+## Releases
+
+This project uses [GoReleaser](https://goreleaser.com/) with GitHub Actions to automate releases.
+
+To create a new release:
+
+```bash
+# Tag the commit
+git tag -a v0.1.0 -m "Release v0.1.0"
+
+# Push the tag
+git push origin v0.1.0
+```
+
+GitHub Actions will automatically:
+- Build binaries for Linux, macOS, and Windows (amd64 and arm64)
+- Create a GitHub release with changelog
+- Upload release artifacts and checksums
+
+Download pre-built binaries from the [Releases](https://github.com/chaptersix/temporal-ts-net/releases) page.
