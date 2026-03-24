@@ -17,15 +17,16 @@ import (
 
 const usage = `Temporal CLI extension: temporal ts-net
 
+Runs temporal server start-dev and exposes it on your Tailscale tailnet.
+
 Usage:
   temporal ts-net [flags passed to temporal server start-dev]
 
 Extension flags:
-  --tailscale / --tsnet                  Expose the dev server on a Tailscale tailnet.
   --tailscale-hostname / --tsnet-hostname VALUE
                                          Tailnet hostname. Default: temporal-dev.
   --tailscale-authkey / --tsnet-authkey VALUE
-                                         Tailscale auth key (or TS_AUTHKEY).
+                                         Tailscale auth key (or TS_AUTHKEY env var).
   --tailscale-state-dir / --tsnet-state-dir VALUE
                                          Directory for tsnet state.
   --max-connections VALUE                Maximum concurrent connections. Default: 1000.
@@ -70,43 +71,40 @@ func Run(args []string, stdin io.Reader, stdout, stderr io.Writer) int {
 		return 1
 	}
 
-	var tailnetSrv *tailscale.Server
-	if extOpts.Tailscale {
-		authKey := extOpts.TailscaleAuthKey
-		if authKey == "" {
-			authKey = os.Getenv("TS_AUTHKEY")
-		}
+	authKey := extOpts.TailscaleAuthKey
+	if authKey == "" {
+		authKey = os.Getenv("TS_AUTHKEY")
+	}
 
-		uiAddr := ""
-		if !serverCfg.Headless {
-			uiAddr = fmt.Sprintf("%s:%d", serverCfg.EffectiveUIIP, serverCfg.UIPort)
-		}
+	uiAddr := ""
+	if !serverCfg.Headless {
+		uiAddr = fmt.Sprintf("%s:%d", serverCfg.EffectiveUIIP, serverCfg.UIPort)
+	}
 
-		tailnetSrv, err = tailscale.Start(ctx, tailscale.Options{
-			Hostname:            extOpts.TailscaleHostname,
-			AuthKey:             authKey,
-			StateDir:            extOpts.TailscaleStateDir,
-			FrontendAddr:        fmt.Sprintf("%s:%d", serverCfg.EffectiveFrontendIP, serverCfg.Port),
-			FrontendPort:        serverCfg.Port,
-			UIAddr:              uiAddr,
-			UIPort:              serverCfg.UIPort,
-			Logger:              slog.New(slog.NewTextHandler(stderr, nil)),
-			MaxConnections:      extOpts.MaxConnections,
-			ConnectionRateLimit: extOpts.ConnectionRateLimit,
-			DialTimeout:         extOpts.DialTimeout,
-			IdleTimeout:         extOpts.IdleTimeout,
-		})
-		if err != nil {
-			_, _ = fmt.Fprintf(stderr, "failed to start tailscale proxy: %v\n", err)
-			_ = interruptAndWait(cmd)
-			return 1
-		}
-		defer tailnetSrv.Stop()
+	tailnetSrv, err := tailscale.Start(ctx, tailscale.Options{
+		Hostname:            extOpts.TailscaleHostname,
+		AuthKey:             authKey,
+		StateDir:            extOpts.TailscaleStateDir,
+		FrontendAddr:        fmt.Sprintf("%s:%d", serverCfg.EffectiveFrontendIP, serverCfg.Port),
+		FrontendPort:        serverCfg.Port,
+		UIAddr:              uiAddr,
+		UIPort:              serverCfg.UIPort,
+		Logger:              slog.New(slog.NewTextHandler(stderr, nil)),
+		MaxConnections:      extOpts.MaxConnections,
+		ConnectionRateLimit: extOpts.ConnectionRateLimit,
+		DialTimeout:         extOpts.DialTimeout,
+		IdleTimeout:         extOpts.IdleTimeout,
+	})
+	if err != nil {
+		_, _ = fmt.Fprintf(stderr, "failed to start tailscale proxy: %v\n", err)
+		_ = interruptAndWait(cmd)
+		return 1
+	}
+	defer tailnetSrv.Stop()
 
-		_, _ = fmt.Fprintf(stdout, "Tailnet gRPC: %s:%d\n", tailnetSrv.Hostname, serverCfg.Port)
-		if !serverCfg.Headless {
-			_, _ = fmt.Fprintf(stdout, "Tailnet UI:   http://%s:%d\n", tailnetSrv.Hostname, serverCfg.UIPort)
-		}
+	_, _ = fmt.Fprintf(stdout, "Tailnet gRPC: %s:%d\n", tailnetSrv.Hostname, serverCfg.Port)
+	if !serverCfg.Headless {
+		_, _ = fmt.Fprintf(stdout, "Tailnet UI:   http://%s:%d\n", tailnetSrv.Hostname, serverCfg.UIPort)
 	}
 
 	err = waitCommand(ctx, cmd)
@@ -153,7 +151,17 @@ func interruptAndWait(cmd *exec.Cmd) error {
 		return nil
 	}
 	_ = cmd.Process.Signal(os.Interrupt)
-	time.Sleep(250 * time.Millisecond)
-	_ = cmd.Process.Kill()
-	return cmd.Wait()
+
+	done := make(chan error, 1)
+	go func() {
+		done <- cmd.Wait()
+	}()
+
+	select {
+	case err := <-done:
+		return err
+	case <-time.After(5 * time.Second):
+		_ = cmd.Process.Kill()
+		return <-done
+	}
 }

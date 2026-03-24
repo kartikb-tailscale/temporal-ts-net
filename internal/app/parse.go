@@ -18,7 +18,6 @@ const (
 
 type ExtensionOptions struct {
 	Help                bool
-	Tailscale           bool
 	TailscaleHostname   string
 	TailscaleAuthKey    string
 	TailscaleStateDir   string
@@ -58,22 +57,6 @@ func ParseExtensionArgs(args []string) (ExtensionOptions, []string, error) {
 		switch {
 		case arg == "-h" || arg == "--help":
 			opts.Help = true
-		case arg == "--tailscale":
-			opts.Tailscale = true
-		case arg == "--tsnet":
-			opts.Tailscale = true
-		case strings.HasPrefix(arg, "--tailscale="):
-			v, err := parseBool(arg[len("--tailscale="):])
-			if err != nil {
-				return opts, nil, fmt.Errorf("invalid --tailscale value: %w", err)
-			}
-			opts.Tailscale = v
-		case strings.HasPrefix(arg, "--tsnet="):
-			v, err := parseBool(arg[len("--tsnet="):])
-			if err != nil {
-				return opts, nil, fmt.Errorf("invalid --tsnet value: %w", err)
-			}
-			opts.Tailscale = v
 		case arg == "--tailscale-hostname":
 			if i+1 >= len(args) {
 				return opts, nil, fmt.Errorf("missing value for --tailscale-hostname")

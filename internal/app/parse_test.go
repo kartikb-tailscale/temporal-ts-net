@@ -9,14 +9,12 @@ import (
 func TestParseExtensionArgs(t *testing.T) {
 	t.Run("extracts extension flags and preserves pass-through", func(t *testing.T) {
 		opts, pass, err := ParseExtensionArgs([]string{
-			"--tailscale",
 			"--tailscale-hostname", "devbox",
 			"--tailscale-authkey=tskey-auth-foo",
 			"--port", "7239",
 			"--headless",
 		})
 		require.NoError(t, err)
-		require.True(t, opts.Tailscale)
 		require.Equal(t, "devbox", opts.TailscaleHostname)
 		require.Equal(t, "tskey-auth-foo", opts.TailscaleAuthKey)
 		require.Equal(t, []string{"--port", "7239", "--headless"}, pass)
@@ -31,14 +29,12 @@ func TestParseExtensionArgs(t *testing.T) {
 
 	t.Run("supports tsnet aliases", func(t *testing.T) {
 		opts, pass, err := ParseExtensionArgs([]string{
-			"--tsnet",
 			"--tsnet-hostname", "alias-host",
 			"--tsnet-authkey", "alias-key",
 			"--tsnet-state-dir", "/tmp/tsnet-state",
 			"--ip", "127.0.0.1",
 		})
 		require.NoError(t, err)
-		require.True(t, opts.Tailscale)
 		require.Equal(t, "alias-host", opts.TailscaleHostname)
 		require.Equal(t, "alias-key", opts.TailscaleAuthKey)
 		require.Equal(t, "/tmp/tsnet-state", opts.TailscaleStateDir)

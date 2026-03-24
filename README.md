@@ -1,12 +1,13 @@
 # temporal-ts-net
 
-Extension command for Temporal CLI that exposes the Temporal development server on your Tailscale tailnet.
+Extension command for Temporal CLI that runs the Temporal development server and exposes it on your Tailscale tailnet.
 
 This extension provides:
 
-- `temporal ts-net` as an enhanced wrapper for `temporal server start-dev`
-- Tailscale networking integration to expose your dev server across your tailnet
+- `temporal ts-net` - wraps `temporal server start-dev` with Tailscale networking
+- Automatic exposure of your dev server across your tailnet
 - Simple setup with automatic Tailscale authentication
+- Connection limiting and rate limiting for production-like constraints
 
 ## Install
 
@@ -33,27 +34,25 @@ You should see `ts-net` listed as an extension command.
 
 ## Usage
 
-Start local dev server without Tailscale:
+Start dev server on your Tailscale tailnet:
 
 ```bash
 temporal ts-net
 ```
 
-Expose dev server on Tailscale tailnet:
+This starts `temporal server start-dev` locally and exposes it on your tailnet at `temporal-dev:7233`.
+
+Customize the hostname:
 
 ```bash
-temporal ts-net \
-    --tailscale \
-    --tailscale-hostname your-dev-host
+temporal ts-net --tailscale-hostname my-temporal
 ```
-
-`--tsnet` and related `--tsnet-*` flags are also accepted aliases.
 
 Pass any `temporal server start-dev` flags through directly:
 
 ```bash
 temporal ts-net \
-    --tailscale \
+    --tailscale-hostname my-temporal \
     --port 7234 \
     --ui-port 8234 \
     --db-filename /tmp/temporal-dev.db
@@ -61,12 +60,15 @@ temporal ts-net \
 
 ## Extension flags
 
-- `--tailscale` / `--tsnet`: enable tsnet listener and proxy
-- `--tailscale-hostname` / `--tsnet-hostname`: tsnet hostname (default `temporal-dev`)
-- `--tailscale-authkey` / `--tsnet-authkey`: auth key for non-interactive auth (or set `TS_AUTHKEY` env var)
-- `--tailscale-state-dir` / `--tsnet-state-dir`: local state dir for tsnet node
+- `--tailscale-hostname` / `--tsnet-hostname`: Tailnet hostname (default: `temporal-dev`)
+- `--tailscale-authkey` / `--tsnet-authkey`: Auth key for non-interactive auth (or set `TS_AUTHKEY` env var)
+- `--tailscale-state-dir` / `--tsnet-state-dir`: Local state directory for tsnet node
+- `--max-connections`: Maximum concurrent connections (default: 1000)
+- `--connection-rate-limit`: Maximum connections per second (default: 100)
+- `--dial-timeout`: Timeout for dialing backend (default: 10s)
+- `--idle-timeout`: Idle timeout for connections (default: 5m)
 
-All non-extension flags are forwarded to `temporal server start-dev`.
+All other flags are forwarded to `temporal server start-dev`.
 
 ## Testing
 
