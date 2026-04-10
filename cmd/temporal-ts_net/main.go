@@ -3,7 +3,7 @@ package main
 import (
 	"os"
 
-	"github.com/chaptersix/temporal-ts-net/internal/app"
+	"github.com/temporal-community/temporal-ts-net/internal/app"
 )
 
 func main() {
