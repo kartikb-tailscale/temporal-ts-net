@@ -19,7 +19,7 @@ jobs:
 
       - name: Read version
         id: version
-        run: echo "version=$(cat VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(grep -v '^#' VERSION | tr -d '[:space:]')" >> "$GITHUB_OUTPUT"
 
       - name: Check if tag exists
         id: check
