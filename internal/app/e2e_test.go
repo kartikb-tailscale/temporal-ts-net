@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/chaptersix/temporal-ts-net/internal/tailscale"
+	"github.com/temporal-community/temporal-ts-net/internal/tailscale"
 	"github.com/stretchr/testify/require"
 	"go.temporal.io/sdk/client"
 	"go.temporal.io/sdk/worker"

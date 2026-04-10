@@ -14,14 +14,14 @@ Your dev server becomes reachable at `temporal-dev:7233` from any machine on you
 ### Quick install
 
 ```bash
-curl -sSfL https://raw.githubusercontent.com/chaptersix/temporal-start-dev-ext/main/install.sh | sh
+curl -sSfL https://raw.githubusercontent.com/temporal-community/temporal-ts-net/main/install.sh | sh
 ```
 
 This detects your OS and architecture, downloads the latest release, and installs to `/usr/local/bin`.
 
 ### Manual download
 
-Download from the [Releases](https://github.com/chaptersix/temporal-start-dev-ext/releases) page. 
+Download from the [Releases](https://github.com/temporal-community/temporal-ts-net/releases) page. 
 Extract the binary and place it somewhere on your `PATH`, for example `/usr/local/bin`:
 
 ```bash

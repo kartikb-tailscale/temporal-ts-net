@@ -59,8 +59,8 @@ changelog:
 
 release:
   github:
-    owner: chaptersix
-    name: temporal-start-dev-ext
+    owner: temporal-community
+    name: temporal-ts-net
   draft: false
   prerelease: auto
   mode: replace
@@ -70,4 +70,4 @@ release:
     Temporal CLI extension for exposing dev servers on Tailscale networks.
 
   footer: |
-    **Full Changelog**: https://github.com/chaptersix/temporal-start-dev-ext/compare/{{ .PreviousTag }}...{{ .Tag }}
+    **Full Changelog**: https://github.com/temporal-community/temporal-ts-net/compare/{{ .PreviousTag }}...{{ .Tag }}

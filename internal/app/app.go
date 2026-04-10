@@ -12,7 +12,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/chaptersix/temporal-ts-net/internal/tailscale"
+	"github.com/temporal-community/temporal-ts-net/internal/tailscale"
 )
 
 const usage = `Temporal CLI extension: temporal ts-net

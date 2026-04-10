@@ -1,9 +1,9 @@
 #!/bin/sh
 # Install temporal-ts-net to /usr/local/bin.
-# Usage: curl -sSfL https://raw.githubusercontent.com/chaptersix/temporal-start-dev-ext/main/install.sh | sh
+# Usage: curl -sSfL https://raw.githubusercontent.com/temporal-community/temporal-ts-net/main/install.sh | sh
 set -e
 
-REPO="chaptersix/temporal-start-dev-ext"
+REPO="temporal-community/temporal-ts-net"
 BINARY="temporal-ts_net"
 INSTALL_DIR="/usr/local/bin"
 
@@ -13,7 +13,7 @@ case "$OS" in
   Darwin) OS="Darwin" ;;
   Linux)  OS="Linux" ;;
   *)
-    echo "Unsupported OS: $OS"
+    echo "This installer doesn't support $OS. Manually install this extension."
     exit 1
     ;;
 esac

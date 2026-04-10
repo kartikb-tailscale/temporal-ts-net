@@ -1,4 +1,4 @@
-module github.com/chaptersix/temporal-ts-net
+module github.com/temporal-community/temporal-ts-net
 
 go 1.26.1
 
